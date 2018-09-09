@@ -11,12 +11,14 @@ started: 30/08/18
 
 
 const http = require('http');
+const https = require('https');
 const urlParser = require('url');
+const fs = require('fs');
 const StringDecoder = require('string_decoder').StringDecoder;
 const mongoose = require('mongoose');
+var config = require('./config');
 
 // ENV variables and Constants
-const port = process.env.port || 8080;
 const decoder = new StringDecoder('utf-8');
 
 
@@ -25,7 +27,7 @@ mongoose.connect('mongodb+srv://t-shop:1010shop@cluster0-tqktf.gcp.mongodb.net/t
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
-  console.log("we're connected!");
+  console.log("we're connected to Cloud DataBase!");
 });
 
 // test db schema 
@@ -65,6 +67,7 @@ const mainHandler = (req, res) => {
             resPayload = typeof(resPayload) === 'object' ? resPayload : {};
 
             // sending response to user
+            res.setHeader('Content-Type', 'application/json');
             res.writeHead(statusCode);
             const resPayloadString = JSON.stringify(resPayload);
             res.end( resPayloadString );
@@ -118,5 +121,12 @@ const routes = {
 }
 
 // Creating and starting server
-const server = http.createServer(mainHandler);
-server.listen(port, ()=> console.log(`Server started and listening port: ${port}`));
+const httpServer = http.createServer(mainHandler);
+httpServer.listen(config.httpPort, ()=> console.log(`Server started and listening port: ${config.httpPort} in ${config.envName} mode`));
+
+const httpsServerOptons = {
+    'key': fs.readFileSync('./https/key.pem'),
+    'cert': fs.readFileSync('./https/cert.pem'),
+}
+const httpsServer = https.createServer( httpsServerOptons, mainHandler);
+httpsServer.listen(config.httpsPort, ()=> console.log(`Server started and listening port: ${config.httpsPort} in ${config.envName} mode`));
